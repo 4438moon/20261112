@@ -14,6 +14,17 @@ function doGet() {
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover');
 }
 
+/** 게임을 GitHub Pages 등 다른 곳에 올렸을 때 기록을 받고, 반 순위를 돌려줍니다. */
+function doPost(e) {
+  let out;
+  try {
+    out = { ok: true, res: saveRecord(JSON.parse(e.postData.contents)) };
+  } catch (err) {
+    out = { ok: false, error: String((err && err.message) || err) };
+  }
+  return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
+}
+
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('같이 가는 길')
     .addItem('반별 1등 다시 계산', 'rebuildTop')

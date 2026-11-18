@@ -637,6 +637,8 @@ setInterval(()=>{if(state.start&&!state.end)$('#timer').textContent='⏱ '+fmt(D
 /* 기록: 구글 Apps Script로 열면 시트로, 아니면 이 기기에 저장 */
 const MAX_GRADE=6, MAX_CLASS=15, RKEY='gachi-gil-records', CKEY='gachi-gil-class';
 const GAS=typeof google!=='undefined'&&google.script&&google.script.run;
+/* 게임을 GitHub Pages에 올렸을 때 기록을 보낼 Apps Script 웹 앱 주소(…/exec) */
+const RECORD_URL='https://script.google.com/macros/s/AKfycbx0oGncegc1R_uROC4TMe22y2EaWeu4FAPfUHU6gcExfBeW-jkGgNmOMdorf6sAl0xTjg/exec';
 function esc(t){return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function fillClassSel(){const gs=$('#grade'),cs=$('#cls');let saved={};try{saved=JSON.parse(localStorage.getItem(CKEY)||'{}');}catch(e){}
   gs.innerHTML='<option value="">고르기</option>'+Array.from({length:MAX_GRADE},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
@@ -664,8 +666,10 @@ $('#saveBtn').onclick=()=>{const nick=$('#nick').value.trim();if(!nick){toast('�
   const rec={grade:+$('#grade').value,cls:+$('#cls').value,nick:nick.slice(0,12),sec:sec(state.end-state.start+state.pen),mode};
   try{localStorage.setItem(CKEY,JSON.stringify({g:rec.grade,c:rec.cls}));}catch(e){}
   const btn=$('#saveBtn');btn.disabled=true;btn.textContent='보내는 중…';
-  if(GAS){google.script.run.withSuccessHandler(res=>showTop(res,rec,true)).withFailureHandler(()=>{btn.disabled=false;btn.textContent='다시 보내기';
-      $('#saveMsg').textContent='기록을 보내지 못했어요. 잠시 뒤에 다시 눌러 주세요.';}).saveRecord(rec);}
+  const fail=()=>{btn.disabled=false;btn.textContent='다시 보내기';$('#saveMsg').textContent='기록을 보내지 못했어요. 잠시 뒤에 다시 눌러 주세요.';};
+  if(GAS){google.script.run.withSuccessHandler(res=>showTop(res,rec,true)).withFailureHandler(fail).saveRecord(rec);}
+  else if(RECORD_URL){fetch(RECORD_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(rec)})
+      .then(r=>r.json()).then(o=>{if(!o||!o.ok)throw new Error(o&&o.error);showTop(o.res,rec,true);}).catch(fail);}
   else showTop(localSave(rec),rec,false);};
 $('#againBtn').onclick=()=>{$('#endOv').classList.remove('open');state=freshState();hud();$('#timer').textContent='⏱ 0:00';
   hint('느낌표(!)가 떠 있는 곳에 가면 문제가 나와요.');$('#introOv').classList.add('open');};
